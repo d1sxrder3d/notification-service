@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+alembic
+pydantic
+pydantic-settings
+aio-pika
+celery
+redis
+pytest
+requests
