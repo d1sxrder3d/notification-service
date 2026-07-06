@@ -1,25 +1,13 @@
 from datetime import datetime
-from enum import Enum
 from typing import Any
-from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-
-class NotificationChannel(str, Enum):
-    EMAIL = "email"
-    TELEGRAM = "telegram"
-    PUSH = "push"
-
-
-class NotificationStatus(str, Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    SENT = "sent"
-    FAILED = "failed"
+from models.notification import NotificationChannel, NotificationStatus
 
 
 class CreateNotificationRequest(BaseModel):
+    user_id: int
     channel: NotificationChannel
     recipient: str
     template_code: str
@@ -29,12 +17,17 @@ class CreateNotificationRequest(BaseModel):
 
 
 class CreateNotificationResponse(BaseModel):
-    id: UUID
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
     status: NotificationStatus
 
 
 class NotificationResponse(BaseModel):
-    id: UUID
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
     channel: NotificationChannel
     recipient: str
     template_code: str

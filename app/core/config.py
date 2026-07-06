@@ -1,12 +1,10 @@
 from typing import Literal
 from pathlib import Path
 
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
-
 
 
 
@@ -22,7 +20,7 @@ class DBSettings(BaseSettings):
 
     type: Literal['sqlite', "postgres"] = "sqlite"
 
-    sqlite_path: Path = BASE_DIR / "data" / "auth_service.db"
+    sqlite_path: Path = BASE_DIR / "data" / "notification_service.db"
 
     host: str = "localhost"
     port: int = 5432
@@ -64,6 +62,20 @@ class DBSettings(BaseSettings):
 
         return options
 
+
+class CelerySettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+        secrets_dir="/run/secrets",
+        env_prefix="CELERY_",
+    )
+
+    ...
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -80,6 +92,7 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     LOGS_DIR: Path = BASE_DIR / "logs"
+    NOTIFICATION_MAX_ATTEMPTS: int = 3
 
     db: DBSettings = DBSettings()
 

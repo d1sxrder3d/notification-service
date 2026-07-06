@@ -4,7 +4,7 @@ from enum import Enum
 from sqlalchemy import DateTime, Enum as SQLEnum, String, JSON, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
-from base import BaseModel
+from models.base import BaseModel
 
 
 class NotificationChannel(str, Enum):
@@ -42,7 +42,7 @@ class Notification(BaseModel):
     )
 
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=3) # TODO: ВЫНЕСТИ В CONFIG
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
 
     idempotency_key: Mapped[str] = mapped_column(
         String(255),

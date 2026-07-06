@@ -3,21 +3,14 @@ from typing import Any, AsyncGenerator
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession, create_async_engine
 
-from app.core.config import settings
+from core.config import settings
 
 
 class AsyncDatabaseManager:
     def __init__(self, database_url: str):
         self.engine = create_async_engine(
             database_url,
-
-            echo=False,
-            pool_size=10,
-
-            max_overflow=20,
-
-            pool_pre_ping = True,
-            pool_recycle = 3600
+            **settings.db.engine_options,
         )
 
         self.async_session_factory = async_sessionmaker(
