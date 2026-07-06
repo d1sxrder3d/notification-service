@@ -9,3 +9,5 @@ celery
 redis
 pytest
 requests
+loguru
+aiosqlite

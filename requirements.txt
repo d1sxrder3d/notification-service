@@ -8,6 +8,8 @@ aio-pika==9.6.2
     # via -r requirements.in
 aiormq==6.9.4
     # via aio-pika
+aiosqlite==0.22.1
+    # via -r requirements.in
 alembic==1.18.5
     # via -r requirements.in
 amqp==5.3.1
@@ -42,6 +44,7 @@ click-repl==0.3.0
 colorama==0.4.6
     # via
     #   click
+    #   loguru
     #   pytest
 fastapi==0.139.0
     # via -r requirements.in
@@ -58,6 +61,8 @@ iniconfig==2.3.0
     # via pytest
 kombu==5.6.2
     # via celery
+loguru==0.7.3
+    # via -r requirements.in
 mako==1.3.12
     # via alembic
 markupsafe==3.0.3
@@ -135,6 +140,8 @@ vine==5.1.0
     #   kombu
 wcwidth==0.8.2
     # via prompt-toolkit
+win32-setctime==1.2.0
+    # via loguru
 yarl==1.24.2
     # via
     #   aio-pika

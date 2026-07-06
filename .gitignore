@@ -9,3 +9,8 @@
 *.pyc
 *.pyi
 
+/app/logs
+
+/app/data
+*.db
+*.sqlite
