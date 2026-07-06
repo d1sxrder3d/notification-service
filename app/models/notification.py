@@ -4,7 +4,7 @@ from enum import Enum
 from sqlalchemy import DateTime, Enum as SQLEnum, String, JSON, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
-from models.base import BaseModel
+from .base import BaseModel
 
 
 class NotificationChannel(str, Enum):
