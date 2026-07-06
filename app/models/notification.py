@@ -23,6 +23,8 @@ class NotificationStatus(str, Enum):
 class Notification(BaseModel):
     __tablename__ = "notifications"
 
+    user_id: Mapped[int] = mapped_column(nullable=False)
+
     channel: Mapped[NotificationChannel] = mapped_column(
         SQLEnum(NotificationChannel),
         nullable=False,
@@ -53,7 +55,7 @@ class Notification(BaseModel):
         DateTime(timezone=True),
         nullable=True,
     )
-    
+
     sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
