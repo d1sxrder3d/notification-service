@@ -10,3 +10,7 @@
 *.pyi
 
 /logs
+
+/data
+*.db
+*.sqlite
