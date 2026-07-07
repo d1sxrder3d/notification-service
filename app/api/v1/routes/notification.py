@@ -44,7 +44,6 @@ async def create_notification(
             scheduled_at=notification.scheduled_at,
         ),
     )
-    await session.commit()
     return CreateNotificationResponse.model_validate(created_notification)
 
 
@@ -69,7 +68,6 @@ async def retry_notification(
     except NotificationRetryNotAllowedError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
-    await session.commit()
     return CreateNotificationResponse.model_validate(notification)
 
 
@@ -93,6 +91,4 @@ async def get_notification(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     return NotificationResponse.model_validate(notification)
-
-
 

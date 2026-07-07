@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Protocol
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,35 +21,55 @@ class CreateNotificationCommand:
     scheduled_at: datetime | None = None
 
 
+class NotificationTaskProducer(Protocol):
+    def enqueue_send_notification(self, notification_id: int) -> None:
+        pass
+
+
 @dataclass(slots=True)
 class NotificationService:
     default_max_attempts: int = 3
+    task_producer: NotificationTaskProducer | None = None
 
     async def create_notification(
         self,
         session: AsyncSession,
         payload: CreateNotificationCommand,
     ) -> Notification:
-        existing = await self._get_by_idempotency_key(session, payload.idempotency_key)
-        if existing is not None:
-            return existing
+        try:
+            existing = await self._get_by_idempotency_key(session, payload.idempotency_key)
+            if existing is not None:
+                return existing
 
-        notification = Notification(
-            user_id=payload.user_id,
-            channel=payload.channel,
-            recipient=payload.recipient,
-            template_code=payload.template_code,
-            payload=payload.payload,
-            status=NotificationStatus.PENDING,
-            attempts=0,
-            max_attempts=self.default_max_attempts,
-            idempotency_key=payload.idempotency_key,
-            scheduled_at=payload.scheduled_at,
-        )
-        session.add(notification)
-        await session.flush()
-        await session.refresh(notification)
+            notification = Notification(
+                user_id=payload.user_id,
+                channel=payload.channel,
+                recipient=payload.recipient,
+                template_code=payload.template_code,
+                payload=payload.payload,
+                status=NotificationStatus.PENDING,
+                attempts=0,
+                max_attempts=self.default_max_attempts,
+                idempotency_key=payload.idempotency_key,
+                scheduled_at=payload.scheduled_at,
+            )
+            session.add(notification)
+
+            await session.flush()
+            await session.commit()
+            await session.refresh(notification)
+        except Exception:
+            await session.rollback()
+            raise
+
+        self._enqueue_notification_delivery(notification)
         return notification
+
+    def _enqueue_notification_delivery(self, notification: Notification) -> None:
+        if self.task_producer is None:
+            return
+
+        self.task_producer.enqueue_send_notification(notification.id)
 
     @staticmethod
     async def get_notification(
@@ -67,22 +87,29 @@ class NotificationService:
         session: AsyncSession,
         notification_id: int,
     ) -> type[Notification]:
-        notification = await self.get_notification(session, notification_id)
+        try:
+            notification = await self.get_notification(session, notification_id)
 
-        if notification.status == NotificationStatus.SENT:
-            raise NotificationRetryNotAllowedError(
-                f"Notification {notification_id} was already sent",
-            )
+            if notification.status == NotificationStatus.SENT:
+                raise NotificationRetryNotAllowedError(
+                    f"Notification {notification_id} was already sent",
+                )
 
-        if notification.attempts >= notification.max_attempts:
-            raise NotificationRetryNotAllowedError(
-                f"Notification {notification_id} exhausted retry budget",
-            )
+            if notification.attempts >= notification.max_attempts:
+                raise NotificationRetryNotAllowedError(
+                    f"Notification {notification_id} exhausted retry budget",
+                )
 
-        notification.status = NotificationStatus.PENDING
-        notification.sent_at = None
-        await session.flush()
-        await session.refresh(notification)
+            notification.status = NotificationStatus.PENDING
+            notification.sent_at = None
+            await session.flush()
+            await session.commit()
+            await session.refresh(notification)
+        except Exception:
+            await session.rollback()
+            raise
+
+        self._enqueue_notification_delivery(notification)
         return notification
 
     @staticmethod

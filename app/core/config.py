@@ -73,8 +73,29 @@ class CelerySettings(BaseSettings):
         env_prefix="CELERY_",
     )
 
-    ...
+    broker_url: str = "redis://localhost:6379/0"
+    result_backend: str = "redis://localhost:6379/1"
+    task_default_queue: str = "notification_tasks"
+    task_serializer: str = "json"
+    result_serializer: str = "json"
+    accept_content: tuple[str, ...] = ("json",)
+    timezone: str = "UTC"
 
+class RabbitMQSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+        secrets_dir="/run/secrets",
+        env_prefix="RMQ_",
+    )
+
+    url: str = "amqp://guest:guest@localhost:5672/"
+    queue_name: str = "notifications"
+    prefetch_count: int = 1
+    durable: bool = True
+    requeue_on_error: bool = False
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -95,6 +116,8 @@ class Settings(BaseSettings):
     NOTIFICATION_MAX_ATTEMPTS: int = 3
 
     db: DBSettings = DBSettings()
+    rabbitmq: RabbitMQSettings = RabbitMQSettings()
+    celery: CelerySettings = CelerySettings()
 
 
 settings = Settings()
