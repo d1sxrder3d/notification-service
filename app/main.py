@@ -33,5 +33,10 @@ app.include_router(main_router)
 
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run(app, host=settings.APP_HOST or "0.0.0.0", port=settings.APP_PORT or 8000)
+    setup_logging()
+    uvicorn.run(
+        app,
+        host=settings.APP_HOST or "0.0.0.0",
+        port=settings.APP_PORT or 8000,
+        log_config=None,
+    )

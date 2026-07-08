@@ -20,6 +20,8 @@ annotated-types==0.7.0
     # via pydantic
 anyio==4.14.1
     # via starlette
+asyncpg==0.30.0
+    # via -r requirements.in
 billiard==4.2.4
     # via celery
 celery==5.6.3
@@ -81,6 +83,10 @@ prompt-toolkit==3.0.52
     # via click-repl
 propcache==0.5.2
     # via yarl
+psycopg[binary]==3.3.4
+    # via -r requirements.in
+psycopg-binary==3.3.4
+    # via psycopg
 pydantic==2.13.4
     # via
     #   -r requirements.in
@@ -126,6 +132,7 @@ typing-inspection==0.4.2
 tzdata==2026.2
     # via
     #   kombu
+    #   psycopg
     #   tzlocal
 tzlocal==5.4.4
     # via celery

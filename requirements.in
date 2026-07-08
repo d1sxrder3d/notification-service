@@ -11,3 +11,6 @@ pytest
 requests
 loguru
 aiosqlite
+asyncpg
+psycopg
+psycopg[binary]

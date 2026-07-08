@@ -24,7 +24,7 @@ class DBSettings(BaseSettings):
 
     host: str = "localhost"
     port: int = 5432
-    name: str = "app_db"
+    name: str = "notification_service"
     user: str = "root"
     password: str = "root"
 
@@ -43,11 +43,20 @@ class DBSettings(BaseSettings):
 
         return f"sqlite+aiosqlite:///{self.sqlite_path.as_posix()}"
 
+
     @property
     def url(self) -> str:
         if self.type == "postgres":
             return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
         return f"sqlite+aiosqlite:///{self.sqlite_path}"
+
+
+    @property
+    def sync_url(self) -> str:
+        if self.type == "postgres":
+            return f"postgresql+psycopg://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
+        return f"sqlite:///{self.sqlite_path.as_posix()}"
+
 
     @property
     def engine_options(self) -> dict:
@@ -72,14 +81,27 @@ class CelerySettings(BaseSettings):
         secrets_dir="/run/secrets",
         env_prefix="CELERY_",
     )
+    broker_host: str = "localhost"
+    broker_port: int = 6379
+    broker_db: int = 0
 
-    broker_url: str = "redis://localhost:6379/0"
-    result_backend: str = "redis://localhost:6379/1"
+    result_host: str = "localhost"
+    result_port: int = 6379
+    result_db: int = 1
+
     task_default_queue: str = "notification_tasks"
     task_serializer: str = "json"
     result_serializer: str = "json"
     accept_content: tuple[str, ...] = ("json",)
     timezone: str = "UTC"
+
+    @property
+    def get_broker_url(self):
+        return f"redis://{self.broker_host}:{self.broker_port}/{self.broker_db}"
+
+    @property
+    def get_result_backend(self):
+        return f"redis://{self.result_host}:{self.result_port}/{self.result_db}"
 
 class RabbitMQSettings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -91,11 +113,21 @@ class RabbitMQSettings(BaseSettings):
         env_prefix="RMQ_",
     )
 
-    url: str = "amqp://guest:guest@localhost:5672/"
+    protocol: Literal["amqp", "amqps"] = "amqp"
+    user: str = "guest"
+    password: str = "guest"
+    host: str = "localhost"
+    port: int = 5672
+
     queue_name: str = "notifications"
     prefetch_count: int = 1
     durable: bool = True
     requeue_on_error: bool = False
+
+    @property
+    def get_url(self):
+        return f"{self.protocol}://{self.user}:{self.password}@{self.host}:{self.port}/{self.queue_name}/"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -113,6 +145,7 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     LOGS_DIR: Path = BASE_DIR / "logs"
+
     NOTIFICATION_MAX_ATTEMPTS: int = 3
 
     db: DBSettings = DBSettings()

@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.notification import Notification, NotificationChannel, NotificationStatus
+from celery_app.tasks import send_notification
 from core.errors import *
+from core.logging_config import logger
 
 
 
@@ -21,15 +23,10 @@ class CreateNotificationCommand:
     scheduled_at: datetime | None = None
 
 
-class NotificationTaskProducer(Protocol):
-    def enqueue_send_notification(self, notification_id: int) -> None:
-        pass
-
 
 @dataclass(slots=True)
 class NotificationService:
     default_max_attempts: int = 3
-    task_producer: NotificationTaskProducer | None = None
 
     async def create_notification(
         self,
@@ -39,8 +36,8 @@ class NotificationService:
         try:
             existing = await self._get_by_idempotency_key(session, payload.idempotency_key)
             if existing is not None:
+                await session.commit()
                 return existing
-
             notification = Notification(
                 user_id=payload.user_id,
                 channel=payload.channel,
@@ -54,22 +51,20 @@ class NotificationService:
                 scheduled_at=payload.scheduled_at,
             )
             session.add(notification)
-
             await session.flush()
             await session.commit()
+
+            logger.debug("NOTIF_SERVICE: Notification (id={}) sent to Celery", notification.id)
+            send_notification.delay(notification_id=notification.id)
+
             await session.refresh(notification)
+
         except Exception:
             await session.rollback()
             raise
 
-        self._enqueue_notification_delivery(notification)
         return notification
 
-    def _enqueue_notification_delivery(self, notification: Notification) -> None:
-        if self.task_producer is None:
-            return
-
-        self.task_producer.enqueue_send_notification(notification.id)
 
     @staticmethod
     async def get_notification(
@@ -105,11 +100,13 @@ class NotificationService:
             await session.flush()
             await session.commit()
             await session.refresh(notification)
+            logger.info("NOTIF_SERVICE: Sending notification to CELERY")
+            send_notification.delay(notification_id=notification.id)
+
         except Exception:
             await session.rollback()
             raise
 
-        self._enqueue_notification_delivery(notification)
         return notification
 
     @staticmethod

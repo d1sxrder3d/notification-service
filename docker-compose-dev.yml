@@ -1,0 +1,128 @@
+services:
+  migrate:
+    build: .
+    command: alembic upgrade head
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: notification_service
+      DB_USER: notification_user
+      DB_PASSWORD: notification_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build: .
+    command: python app/main.py
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      DB_TYPE: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: notification_service
+      DB_USER: notification_user
+      DB_PASSWORD: notification_password
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      RMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RMQ_QUEUE_NAME: notifications
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app/logs:/app/app/logs
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  rabbitmq-consumer:
+    build: .
+    command: python app/brokers/entrypoints/rabbitmq.py
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: notification_service
+      DB_USER: notification_user
+      DB_PASSWORD: notification_password
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      RMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RMQ_QUEUE_NAME: notifications
+    volumes:
+      - ./app/logs:/app/app/logs
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  celery-worker:
+    build: .
+    command: celery -A celery_app.celery_app:celery_app worker -l info --pool=prefork --concurrency=1
+    environment:
+      APP_DEBUG: true
+      LOG_LEVEL: DEBUG
+      DB_TYPE: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: notification_service
+      DB_USER: notification_user
+      DB_PASSWORD: notification_password
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    volumes:
+      - ./app/logs:/app/app/logs
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: notification_service
+      POSTGRES_USER: notification_user
+      POSTGRES_PASSWORD: notification_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notification_user -d notification_service"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  postgres_data:

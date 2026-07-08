@@ -8,7 +8,8 @@ from aio_pika.abc import (
     AbstractRobustConnection,
 )
 
-from brokers.base import MessageConsumer, MessageHandler
+from brokers.consumers.base import MessageConsumer, MessageHandler
+from core.logging_config import logger
 
 
 class RabbitMQConsumer(MessageConsumer):
@@ -80,8 +81,10 @@ class RabbitMQConsumer(MessageConsumer):
             await message.reject(requeue=False)
             return
 
+        logger.info("Received RabbitMQ message {}", message.delivery_tag)
         async with message.process(requeue=self.requeue_on_error):
             await handler(payload)
+        logger.info("Acknowledged RabbitMQ message {}", message.delivery_tag)
 
     @staticmethod
     def _decode_message(message: IncomingMessage) -> dict[str, Any]:

@@ -8,7 +8,7 @@ if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
 from brokers.handlers.notification import NotificationMessageHandler
-from brokers.rabbitmq import RabbitMQConsumer
+from brokers.consumers.rabbitmq import RabbitMQConsumer
 from core.config import settings
 from core.db import db_manager
 from core.dependencies import get_notification_service
@@ -35,7 +35,7 @@ async def run_consumer() -> None:
     _register_shutdown_handlers(stop_event)
 
     consumer = RabbitMQConsumer(
-        url=settings.rabbitmq.url,
+        url=settings.rabbitmq.get_url,
         queue_name=settings.rabbitmq.queue_name,
         prefetch_count=settings.rabbitmq.prefetch_count,
         durable=settings.rabbitmq.durable,
