@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.models.notification import NotificationChannel
+from models.notification import NotificationChannel
 
 
 @dataclass(slots=True, frozen=True)
