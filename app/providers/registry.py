@@ -26,7 +26,6 @@ class ProviderRegistry:
         return provider
 
 
-def get_provider_registry() -> ProviderRegistry:
-    return ProviderRegistry(
-        providers=(),
-    )
+provider_registry = ProviderRegistry(
+    providers=(),
+)

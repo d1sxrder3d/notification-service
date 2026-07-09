@@ -1,0 +1,10 @@
+celery
+redis
+
+sqlalchemy
+pydantic_settings
+
+loguru
+
+psycopg
+psycopg[binary]

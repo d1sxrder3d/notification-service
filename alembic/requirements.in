@@ -1,0 +1,8 @@
+pydantic-settings
+sqlalchemy
+alembic
+
+aiosqlite
+asyncpg
+psycopg
+psycopg[binary]

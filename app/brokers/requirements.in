@@ -1,0 +1,14 @@
+aio-pika
+
+sqlalchemy
+pydantic
+pydantic-settings
+
+celery
+redis
+
+loguru
+
+asyncpg
+psycopg
+psycopg[binary]
