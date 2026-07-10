@@ -24,8 +24,6 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
 
   rabbitmq-consumer:
     build:
@@ -79,13 +77,19 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U notification_user -d notification_service"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 12
 
   rabbitmq:
     image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: ${RMQ_VHOST}
+    env_file:
+      - .env
     ports:
       - "5672:5672"
       - "15672:15672"

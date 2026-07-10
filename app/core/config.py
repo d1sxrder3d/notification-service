@@ -145,7 +145,7 @@ class RabbitMQSettings(BaseSettings):
     password: str = "guest"
     host: str = "localhost"
     port: int = 5672
-    # format: "/.../"
+    # Use plain vhost name like "notifications" or "/" for the default vhost.
     vhost: str = "/"
 
     queue_name: str = "notifications"
@@ -155,7 +155,8 @@ class RabbitMQSettings(BaseSettings):
 
     @property
     def get_url(self):
-        return f"{self.protocol}://{self.user}:{self.password}@{self.host}:{self.port}{self.vhost}"
+        normalized_vhost = self.vhost if self.vhost.startswith("/") else f"/{self.vhost}"
+        return f"{self.protocol}://{self.user}:{self.password}@{self.host}:{self.port}{normalized_vhost}"
 
 
 class Settings(BaseSettings):

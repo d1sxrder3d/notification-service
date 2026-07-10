@@ -19,7 +19,4 @@ RUN rm /app/alembic.ini
 #зависимости с win
 RUN pip uninstall win32-setctime colorama -y
 
-CMD ["python", "app/main.py"]
-
-#CMD ["sleep", "300"] - 4 debug
-#docker build -f ./infra/Dockerfile-app .
+CMD ["echo", "WARNING, RUN THIS DOCKERFILE IN DOCKER-COMPOSE"]

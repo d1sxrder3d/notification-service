@@ -14,4 +14,3 @@
 /app/data
 *.db
 *.sqlite
-testing/

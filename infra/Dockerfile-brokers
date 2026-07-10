@@ -20,4 +20,4 @@ COPY app/providers providers
 
 RUN pip uninstall win32-setctime colorama -y
 
-CMD ["python", "brokers/entrypoints/rabbitmq.py"]
+CMD ["echo", "WARNING, RUN THIS DOCKERFILE IN DOCKER-COMPOSE"]
