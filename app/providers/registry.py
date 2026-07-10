@@ -2,7 +2,6 @@ from collections.abc import Iterable
 
 from models.notification import NotificationChannel
 from providers.base import NotificationProvider
-from providers.email import EmailNotificationProvider
 
 
 class ProviderNotConfiguredError(Exception):
@@ -27,9 +26,6 @@ class ProviderRegistry:
         return provider
 
 
-def get_provider_registry() -> ProviderRegistry:
-    return ProviderRegistry(
-        providers=(
-            EmailNotificationProvider(),
-        ),
-    )
+provider_registry = ProviderRegistry(
+    providers=(),
+)

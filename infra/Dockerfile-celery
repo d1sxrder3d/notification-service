@@ -1,0 +1,22 @@
+FROM python:3.13-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app:/app/app
+
+WORKDIR /app
+
+COPY /app/celery_app celery_app
+RUN pip install --no-cache-dir -r celery_app/requirements.txt
+
+COPY /app/models models
+COPY /app/core core
+COPY /app/providers providers
+
+RUN rm core/dependencies.py
+RUN rm core/errors.py
+RUN rm celery_app/requirements.txt
+
+RUN pip uninstall win32-setctime colorama -y
+
+CMD ["echo", "WARNING, RUN THIS DOCKERFILE IN DOCKER-COMPOSE"]

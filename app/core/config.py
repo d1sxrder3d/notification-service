@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Any
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -6,7 +6,28 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
+# ---- ----  Providers ---- ----
 
+class SMTPSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+        secrets_dir="/run/secrets",
+        env_prefix="SMTP_",
+    )
+
+    channel: str = "email"
+
+    host: str = "smtp.gmail.com"
+    port: int = 465
+    address: str = "username@gmail.com"
+    password: str = "password12345"
+
+
+
+# ---- ----  Providers ---- ----
 
 class DBSettings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -60,7 +81,7 @@ class DBSettings(BaseSettings):
 
     @property
     def engine_options(self) -> dict:
-        options = {"echo": self.echo}
+        options: dict[str, Any] = {"echo": self.echo}
 
         if self.type == "postgres":
             options.update({
@@ -103,6 +124,7 @@ class CelerySettings(BaseSettings):
     def get_result_backend(self):
         return f"redis://{self.result_host}:{self.result_port}/{self.result_db}"
 
+
 class RabbitMQSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -118,6 +140,8 @@ class RabbitMQSettings(BaseSettings):
     password: str = "guest"
     host: str = "localhost"
     port: int = 5672
+    # format: "/.../"
+    vhost: str = "/"
 
     queue_name: str = "notifications"
     prefetch_count: int = 1
@@ -126,7 +150,7 @@ class RabbitMQSettings(BaseSettings):
 
     @property
     def get_url(self):
-        return f"{self.protocol}://{self.user}:{self.password}@{self.host}:{self.port}/{self.queue_name}/"
+        return f"{self.protocol}://{self.user}:{self.password}@{self.host}:{self.port}{self.vhost}"
 
 
 class Settings(BaseSettings):
@@ -151,6 +175,7 @@ class Settings(BaseSettings):
     db: DBSettings = DBSettings()
     rabbitmq: RabbitMQSettings = RabbitMQSettings()
     celery: CelerySettings = CelerySettings()
+    smtp: SMTPSettings = SMTPSettings()
 
 
 settings = Settings()

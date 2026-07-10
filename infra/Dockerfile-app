@@ -1,0 +1,25 @@
+FROM python:3.13-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app:/app/app
+                #АП! АП-АП!
+WORKDIR /app
+
+# Копируемс!
+COPY . .
+RUN pip install --no-cache-dir -r /app/app/requirements.txt
+
+# Чистка мусораа
+RUN rm /app/requirements.txt
+RUN rm /app/app/requirements.txt
+RUN rm -rf /app/alembic
+RUN rm /app/alembic.ini
+
+#зависимости с win
+RUN pip uninstall win32-setctime colorama -y
+
+CMD ["python", "app/main.py"]
+
+#CMD ["sleep", "300"] - 4 debug
+#docker build -f ./infra/Dockerfile-app .
