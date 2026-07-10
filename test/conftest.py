@@ -35,7 +35,6 @@ def notification_factory():
             "attempts": 0,
             "max_attempts": 3,
             "idempotency_key": "test-key",
-            "provider_id": None,
             "provider_code": None,
             "failure_reason": None,
             "scheduled_at": None,

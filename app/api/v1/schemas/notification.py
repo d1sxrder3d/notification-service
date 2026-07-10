@@ -35,7 +35,6 @@ class NotificationResponse(BaseModel):
     status: NotificationStatus
     attempts: int
     max_attempts: int
-    provider_id: int | None
     provider_code: str | None
     failure_reason: str | None
     scheduled_at: datetime | None

@@ -14,7 +14,7 @@
 4. `Celery` worker читает уведомление из БД и выбирает провайдер по `channel`.
 5. `TemplateManager` рендерит шаблон по `template_code` и `payload`.
 6. Провайдер доставки отправляет уведомление и возвращает результат.
-7. Сервис обновляет `status`, `attempts`, `provider_id`, `failure_reason`, `sent_at`.
+7. Сервис обновляет `status`, `attempts`, `provider_code`, `failure_reason`, `sent_at`.
 
 ## Основные компоненты
 
@@ -96,7 +96,7 @@
 - `attempts`
 - `max_attempts`
 - `idempotency_key`
-- `provider_id`
+- `provider_code`
 - `failure_reason`
 - `scheduled_at`
 - `sent_at`

@@ -29,7 +29,6 @@ def test_send_notification_marks_as_sent_on_success(
     send_notification(notification.id)
 
     assert notification.status == NotificationStatus.SENT
-    assert notification.provider_id == 11
     assert notification.provider_code == "smtp_primary"
     assert notification.failure_reason is None
     assert notification.attempts == 1

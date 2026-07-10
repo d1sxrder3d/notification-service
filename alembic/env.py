@@ -5,8 +5,8 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from core.config import settings
-from models import BaseModel, Notification
+from app.core.config import settings
+from app.models import BaseModel, Notification
 
 config = context.config
 

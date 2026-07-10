@@ -66,7 +66,6 @@ def send_notification(notification_id: int):
             )
 
             provider = provider_registry.get(notification.channel)
-            notification.provider_id = provider.id
             notification.provider_code = provider.code
             send_result = asyncio.run(
                 provider.send(

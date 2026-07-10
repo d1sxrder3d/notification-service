@@ -99,7 +99,6 @@ class NotificationService:
             notification.status = NotificationStatus.PENDING
             notification.sent_at = None
             notification.failure_reason = None
-            notification.provider_id = None
             notification.provider_code = None
             await session.flush()
             await session.commit()
