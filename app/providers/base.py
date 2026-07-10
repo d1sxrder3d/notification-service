@@ -12,6 +12,7 @@ class ProviderSendResult:
 
 
 class NotificationProvider(ABC):
+    id: int | None = None
     channel: NotificationChannel
 
     @abstractmethod

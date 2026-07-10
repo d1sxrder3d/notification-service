@@ -22,10 +22,15 @@ class SMTPSettings(BaseSettings):
 
     host: str = "smtp.gmail.com"
     port: int = 465
-    address: str = "username@gmail.com"
+
+    username: str = "username@example.com"
     password: str = "password12345"
 
+    sender_email: str = "username@gmail.com"
+    sender_name: str = "Notification Service"
 
+    use_tls: bool = False
+    start_tls: bool = True
 
 # ---- ----  Providers ---- ----
 
@@ -169,6 +174,7 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     LOGS_DIR: Path = BASE_DIR / "logs"
+    TEMPLATES_DIR: Path = BASE_DIR / "templates"
 
     NOTIFICATION_MAX_ATTEMPTS: int = 3
 

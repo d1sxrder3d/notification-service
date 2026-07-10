@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.notification import Notification, NotificationChannel, NotificationStatus
 from celery_app.tasks import send_notification
+from core.config import settings
 from core.errors import *
 from core.logging_config import logger
 
@@ -26,7 +27,7 @@ class CreateNotificationCommand:
 
 @dataclass(slots=True)
 class NotificationService:
-    default_max_attempts: int = 3
+    default_max_attempts: int = settings.NOTIFICATION_MAX_ATTEMPTS
 
     async def create_notification(
         self,
@@ -97,6 +98,7 @@ class NotificationService:
 
             notification.status = NotificationStatus.PENDING
             notification.sent_at = None
+            notification.failure_reason = None
             await session.flush()
             await session.commit()
             await session.refresh(notification)
