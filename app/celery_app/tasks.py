@@ -1,11 +1,15 @@
 import asyncio
 from datetime import datetime, timezone
+from time import perf_counter
 
 from aiosmtplib.errors import SMTPAuthenticationError, SMTPConnectError, SMTPException
+from celery.signals import worker_process_init, worker_init
 
 from celery_app.app import app
+from core.config import settings
 from core.db import celery_db_manager
 from core.logging_config import logger
+from core.metrics import observe_notification_send, start_metrics_server
 from models.notification import Notification, NotificationStatus
 from providers.registry import ProviderNotConfiguredError, provider_registry
 from providers.templates_manager import TemplateRenderingError
@@ -30,9 +34,18 @@ def _build_failure_reason(notification: Notification, exc: Exception) -> str:
     return f"unexpected_error:{exc.__class__.__name__}"
 
 
+@worker_process_init.connect
+def _start_worker_metrics_server(**_: object) -> None:
+    start_metrics_server(settings.metrics.celery_port)
+
+
+
 @app.task
 def send_notification(notification_id: int):
     with celery_db_manager.session() as session:
+        started_at = perf_counter()
+        provider_code = "unassigned"
+        channel = "unknown"
         try:
             notification = session.get(Notification, notification_id)
 
@@ -57,6 +70,7 @@ def send_notification(notification_id: int):
             notification.failure_reason = None
 
             session.flush()
+            channel = notification.channel.value
 
             logger.info(
                 "Sending notification {} via {} to {}",
@@ -67,6 +81,7 @@ def send_notification(notification_id: int):
 
             provider = provider_registry.get(notification.channel)
             notification.provider_code = provider.code
+            provider_code = provider.code
             send_result = asyncio.run(
                 provider.send(
                     recipient=notification.recipient,
@@ -84,12 +99,24 @@ def send_notification(notification_id: int):
                 notification.channel.value,
                 send_result.metadata,
             )
+            observe_notification_send(
+                channel=channel,
+                provider_code=provider_code,
+                status="sent",
+                duration_seconds=perf_counter() - started_at,
+            )
 
             session.commit()
         except Exception as exc:
             if "notification" in locals() and notification is not None:
                 notification.status = NotificationStatus.FAILED
                 notification.failure_reason = _build_failure_reason(notification, exc)
+                observe_notification_send(
+                    channel=channel,
+                    provider_code=provider_code,
+                    status="failed",
+                    duration_seconds=perf_counter() - started_at,
+                )
                 session.commit()
             logger.exception(
                 "Failed to send notification {} with reason {}",

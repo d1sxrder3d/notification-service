@@ -13,6 +13,7 @@ from core.config import settings
 from core.db import db_manager
 from core.dependencies import get_notification_service
 from core.logging_config import logger, setup_logging
+from core.metrics import start_metrics_server
 
 
 def _register_shutdown_handlers(stop_event: asyncio.Event) -> None:
@@ -30,6 +31,7 @@ def _register_shutdown_handlers(stop_event: asyncio.Event) -> None:
 
 async def run_consumer() -> None:
     setup_logging()
+    start_metrics_server(settings.metrics.broker_port)
 
     stop_event = asyncio.Event()
     _register_shutdown_handlers(stop_event)

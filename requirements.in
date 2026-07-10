@@ -17,3 +17,4 @@ psycopg
 psycopg[binary]
 aiosmtplib
 jinja2
+prometheus-client
