@@ -20,6 +20,7 @@ def test_send_notification_marks_as_sent_on_success(
 
     provider = MagicMock()
     provider.id = 11
+    provider.code = "smtp_primary"
     provider.send = AsyncMock(return_value=MagicMock(metadata={"smtp_response": "ok"}))
 
     monkeypatch.setattr("celery_app.tasks.celery_db_manager.session", lambda: sync_session_context(session))
@@ -29,6 +30,7 @@ def test_send_notification_marks_as_sent_on_success(
 
     assert notification.status == NotificationStatus.SENT
     assert notification.provider_id == 11
+    assert notification.provider_code == "smtp_primary"
     assert notification.failure_reason is None
     assert notification.attempts == 1
     session.commit.assert_called()
@@ -77,6 +79,7 @@ def test_send_notification_saves_failure_reason_on_errors(
 
     provider = MagicMock()
     provider.id = 1
+    provider.code = "smtp_primary"
     provider.send = AsyncMock(side_effect=exception)
 
     monkeypatch.setattr("celery_app.tasks.celery_db_manager.session", lambda: sync_session_context(session))

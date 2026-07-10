@@ -19,6 +19,7 @@ class SMTPSettings(BaseSettings):
     )
 
     channel: str = "email"
+    provider_code: str = "smtp_primary"
 
     host: str = "smtp.gmail.com"
     port: int = 465

@@ -54,6 +54,7 @@ def send_notification(notification_id: int):
 
             notification.status = NotificationStatus.PROCESSING
             notification.attempts = notification.attempts + 1
+            notification.failure_reason = None
 
             session.flush()
 
@@ -65,6 +66,8 @@ def send_notification(notification_id: int):
             )
 
             provider = provider_registry.get(notification.channel)
+            notification.provider_id = provider.id
+            notification.provider_code = provider.code
             send_result = asyncio.run(
                 provider.send(
                     recipient=notification.recipient,
@@ -75,7 +78,6 @@ def send_notification(notification_id: int):
 
             notification.status = NotificationStatus.SENT
             notification.sent_at = datetime.now(timezone.utc)
-            notification.provider_id = provider.id
 
             logger.info(
                 "Notification {} sent successfully via {} with metadata {}",

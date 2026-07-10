@@ -55,6 +55,11 @@ class Notification(BaseModel):
         nullable=True,
     )
 
+    provider_code: Mapped[str] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+
     failure_reason: Mapped[str] = mapped_column(
         String(255),
         nullable=True,

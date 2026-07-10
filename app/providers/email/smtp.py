@@ -14,6 +14,7 @@ from providers.templates_manager import TemplateManager, template_manager
 class SMTPProvider(NotificationProvider):
     def __init__(self, renderer: TemplateManager = template_manager):
         self.channel = NotificationChannel(settings.smtp.channel)
+        self.code = settings.smtp.provider_code
         self.host: str = settings.smtp.host
         self.port: int = settings.smtp.port
         self.username: str = settings.smtp.username

@@ -37,7 +37,13 @@ def test_create_notification_endpoint_returns_validation_error(api_client):
 
 
 def test_get_notification_endpoint_returns_notification(api_client, api_dependencies, notification_factory):
-    notification = notification_factory(id=3, status=NotificationStatus.FAILED)
+    notification = notification_factory(
+        id=3,
+        status=NotificationStatus.FAILED,
+        provider_id=11,
+        provider_code="smtp_primary",
+        failure_reason="smtp_connection_failed",
+    )
     api_dependencies.service.get_notification.return_value = notification
 
     response = api_client.get("/api/v1/notifications/3")
@@ -45,6 +51,9 @@ def test_get_notification_endpoint_returns_notification(api_client, api_dependen
     assert response.status_code == 200
     assert response.json()["id"] == 3
     assert response.json()["status"] == "failed"
+    assert response.json()["provider_id"] == 11
+    assert response.json()["provider_code"] == "smtp_primary"
+    assert response.json()["failure_reason"] == "smtp_connection_failed"
 
 
 def test_get_notification_endpoint_returns_not_found(api_client, api_dependencies):
