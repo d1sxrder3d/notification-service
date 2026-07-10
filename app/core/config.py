@@ -140,6 +140,8 @@ class RabbitMQSettings(BaseSettings):
     password: str = "guest"
     host: str = "localhost"
     port: int = 5672
+    # format: "/.../"
+    vhost: str = "/"
 
     queue_name: str = "notifications"
     prefetch_count: int = 1
@@ -148,7 +150,7 @@ class RabbitMQSettings(BaseSettings):
 
     @property
     def get_url(self):
-        return f"{self.protocol}://{self.user}:{self.password}@{self.host}:{self.port}/{self.queue_name}/"
+        return f"{self.protocol}://{self.user}:{self.password}@{self.host}:{self.port}{self.vhost}"
 
 
 class Settings(BaseSettings):

@@ -1,6 +1,8 @@
 services:
   migrate:
-    build: .
+    build:
+      context: .
+      dockerfile: infra/Dockerfile-alembic
     command: alembic upgrade head
     environment:
       DB_TYPE: postgres
@@ -14,7 +16,9 @@ services:
         condition: service_healthy
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: infra/Dockerfile-app
     command: python app/main.py
     environment:
       APP_HOST: 0.0.0.0
@@ -27,12 +31,14 @@ services:
       DB_PASSWORD: notification_password
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
-      RMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RMQ_HOST: rabbitmq
+      RMQ_PORT: 5672
+      RMQ_PROTOCOL: amqp
+      RMQ_USER: guest
+      RMQ_PASSWORD: guest
       RMQ_QUEUE_NAME: notifications
     ports:
       - "8000:8000"
-    volumes:
-      - ./app/logs:/app/app/logs
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -42,8 +48,10 @@ services:
         condition: service_healthy
 
   rabbitmq-consumer:
-    build: .
-    command: python app/brokers/entrypoints/rabbitmq.py
+    build:
+      context: .
+      dockerfile: infra/Dockerfile-brokers
+    command: python brokers/entrypoints/rabbitmq.py
     environment:
       DB_TYPE: postgres
       DB_HOST: postgres
@@ -53,10 +61,12 @@ services:
       DB_PASSWORD: notification_password
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
-      RMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      RMQ_HOST: rabbitmq
+      RMQ_PORT: 5672
+      RMQ_PROTOCOL: amqp
+      RMQ_USER: guest
+      RMQ_PASSWORD: guest
       RMQ_QUEUE_NAME: notifications
-    volumes:
-      - ./app/logs:/app/app/logs
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -66,8 +76,11 @@ services:
         condition: service_healthy
 
   celery-worker:
-    build: .
-    command: celery -A celery_app.celery_app:celery_app worker -l info --pool=prefork --concurrency=1
+    build:
+      context: .
+      dockerfile: infra/Dockerfile-celery
+    command: celery -A celery_app.app:app worker -l info --pool=prefork --concurrency=1
+#    command: sleep 300
     environment:
       APP_DEBUG: true
       LOG_LEVEL: DEBUG
@@ -79,8 +92,6 @@ services:
       DB_PASSWORD: notification_password
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
-    volumes:
-      - ./app/logs:/app/app/logs
     depends_on:
       migrate:
         condition: service_completed_successfully
