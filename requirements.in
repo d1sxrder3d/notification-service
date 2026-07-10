@@ -8,9 +8,12 @@ aio-pika
 celery
 redis
 pytest
+httpx2
 requests
 loguru
 aiosqlite
 asyncpg
 psycopg
 psycopg[binary]
+aiosmtplib
+jinja2

@@ -51,6 +51,15 @@ class Notification(BaseModel):
         index=True,
     )
 
+    provider_id: Mapped[int] = mapped_column(
+        nullable=True,
+    )
+
+    failure_reason: Mapped[str] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
     scheduled_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

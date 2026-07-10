@@ -4,13 +4,8 @@ services:
       context: .
       dockerfile: infra/Dockerfile-alembic
     command: alembic upgrade head
-    environment:
-      DB_TYPE: postgres
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: notification_service
-      DB_USER: notification_user
-      DB_PASSWORD: notification_password
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -20,23 +15,8 @@ services:
       context: .
       dockerfile: infra/Dockerfile-app
     command: python app/main.py
-    environment:
-      APP_HOST: 0.0.0.0
-      APP_PORT: 8000
-      DB_TYPE: postgres
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: notification_service
-      DB_USER: notification_user
-      DB_PASSWORD: notification_password
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
-      RMQ_HOST: rabbitmq
-      RMQ_PORT: 5672
-      RMQ_PROTOCOL: amqp
-      RMQ_USER: guest
-      RMQ_PASSWORD: guest
-      RMQ_QUEUE_NAME: notifications
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     depends_on:
@@ -44,29 +24,14 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
 
   rabbitmq-consumer:
     build:
       context: .
       dockerfile: infra/Dockerfile-brokers
     command: python brokers/entrypoints/rabbitmq.py
-    environment:
-      DB_TYPE: postgres
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: notification_service
-      DB_USER: notification_user
-      DB_PASSWORD: notification_password
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
-      RMQ_HOST: rabbitmq
-      RMQ_PORT: 5672
-      RMQ_PROTOCOL: amqp
-      RMQ_USER: guest
-      RMQ_PASSWORD: guest
-      RMQ_QUEUE_NAME: notifications
+    env_file:
+      - .env
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -81,17 +46,8 @@ services:
       dockerfile: infra/Dockerfile-celery
     command: celery -A celery_app.app:app worker -l info --pool=prefork --concurrency=1
 #    command: sleep 300
-    environment:
-      APP_DEBUG: true
-      LOG_LEVEL: DEBUG
-      DB_TYPE: postgres
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: notification_service
-      DB_USER: notification_user
-      DB_PASSWORD: notification_password
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    env_file:
+      - .env
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -111,21 +67,29 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: notification_service
-      POSTGRES_USER: notification_user
-      POSTGRES_PASSWORD: notification_password
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    env_file:
+      - .env
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U notification_user -d notification_service"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 12
 
   rabbitmq:
     image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: ${RMQ_VHOST}
+    env_file:
+      - .env
     ports:
       - "5672:5672"
       - "15672:15672"

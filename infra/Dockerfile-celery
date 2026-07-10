@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r celery_app/requirements.txt
 COPY /app/models models
 COPY /app/core core
 COPY /app/providers providers
+COPY /app/templates templates
 
 RUN rm core/dependencies.py
 RUN rm core/errors.py

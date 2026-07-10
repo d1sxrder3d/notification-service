@@ -17,8 +17,7 @@ COPY app/core/config.py /app/core/config.py
 COPY ./alembic ./alembic
 
 RUN rm /app/alembic/requirements.*
-COPY ../alembic.ini .
+COPY alembic.ini .
 
 
-CMD ["alembic", "upgrade", "head"]
-#CMD ["sleep", "300"] - 4 debug
+CMD ["echo", "WARNING, RUN THIS DOCKERFILE IN DOCKER-COMPOSE"]

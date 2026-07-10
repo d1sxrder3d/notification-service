@@ -22,10 +22,15 @@ class SMTPSettings(BaseSettings):
 
     host: str = "smtp.gmail.com"
     port: int = 465
-    address: str = "username@gmail.com"
+
+    username: str = "username@example.com"
     password: str = "password12345"
 
+    sender_email: str = "username@gmail.com"
+    sender_name: str = "Notification Service"
 
+    use_tls: bool = False
+    start_tls: bool = True
 
 # ---- ----  Providers ---- ----
 
@@ -140,7 +145,7 @@ class RabbitMQSettings(BaseSettings):
     password: str = "guest"
     host: str = "localhost"
     port: int = 5672
-    # format: "/.../"
+    # Use plain vhost name like "notifications" or "/" for the default vhost.
     vhost: str = "/"
 
     queue_name: str = "notifications"
@@ -150,7 +155,8 @@ class RabbitMQSettings(BaseSettings):
 
     @property
     def get_url(self):
-        return f"{self.protocol}://{self.user}:{self.password}@{self.host}:{self.port}{self.vhost}"
+        normalized_vhost = self.vhost if self.vhost.startswith("/") else f"/{self.vhost}"
+        return f"{self.protocol}://{self.user}:{self.password}@{self.host}:{self.port}{normalized_vhost}"
 
 
 class Settings(BaseSettings):
@@ -169,6 +175,7 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     LOGS_DIR: Path = BASE_DIR / "logs"
+    TEMPLATES_DIR: Path = BASE_DIR / "templates"
 
     NOTIFICATION_MAX_ATTEMPTS: int = 3
 

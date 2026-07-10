@@ -9,3 +9,5 @@ loguru
 asyncpg
 psycopg
 psycopg[binary]
+aiosmtplib
+jinja2

@@ -16,7 +16,8 @@ COPY app/api/v1/schemas api/v1/schemas
 COPY app/models models
 COPY app/services services
 COPY app/celery_app celery_app
+COPY app/providers providers
 
 RUN pip uninstall win32-setctime colorama -y
 
-CMD ["python", "brokers/entrypoints/rabbitmq.py"]
+CMD ["echo", "WARNING, RUN THIS DOCKERFILE IN DOCKER-COMPOSE"]
