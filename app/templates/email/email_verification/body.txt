@@ -1,0 +1,6 @@
+Email verification
+
+Hello, {{ name }}.
+
+Confirm your email address by following the link below:
+{{ verification_url }}
