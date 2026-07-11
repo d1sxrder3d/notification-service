@@ -14,3 +14,4 @@
 /app/data
 *.db
 *.sqlite
+/local
