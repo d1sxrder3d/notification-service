@@ -43,10 +43,11 @@ def _start_worker_metrics_server(**_: object) -> None:
 
 @worker_init.connect
 def _requeue_pending_notifications(**_: object) -> None:
+    """ Worker-init хук, который смотрит в БД при запуске, проверяя её на наличие необработанных задач """
     with celery_db_manager.session() as session:
         try:
             pending_notification_ids = session.execute(
-                select(Notification.id).where(Notification.status == NotificationStatus.PENDING)
+                select(Notification.id).where(Notification.status.in_([NotificationStatus.PENDING, NotificationStatus.PROCESSING]))
             ).scalars().all()
 
             if not pending_notification_ids:
