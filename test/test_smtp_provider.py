@@ -36,6 +36,7 @@ async def test_smtp_provider_sends_multipart_email(monkeypatch):
     monkeypatch.setattr("providers.email.smtp.aiosmtplib.send", send_mock)
 
     provider = SMTPProvider(renderer=renderer)
+    assert provider.code == "smtp_primary"
 
     result = await provider.send(
         recipient="user@example.com",

@@ -1,8 +1,8 @@
-"""add notifications table
+"""add notification table
 
-Revision ID: 66ba0b6074ff
+Revision ID: b3bd8f1090e3
 Revises: 
-Create Date: 2026-07-06 20:37:17.609204
+Create Date: 2026-07-10 19:24:40.610138
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '66ba0b6074ff'
+revision: str = 'b3bd8f1090e3'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,6 +31,8 @@ def upgrade() -> None:
     sa.Column('attempts', sa.Integer(), nullable=False),
     sa.Column('max_attempts', sa.Integer(), nullable=False),
     sa.Column('idempotency_key', sa.String(length=255), nullable=False),
+    sa.Column('provider_code', sa.String(length=100), nullable=True),
+    sa.Column('failure_reason', sa.String(length=255), nullable=True),
     sa.Column('scheduled_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('sent_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),

@@ -51,7 +51,8 @@ class Notification(BaseModel):
         index=True,
     )
 
-    provider_id: Mapped[int] = mapped_column(
+    provider_code: Mapped[str] = mapped_column(
+        String(100),
         nullable=True,
     )
 

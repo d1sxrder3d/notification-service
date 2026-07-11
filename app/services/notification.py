@@ -10,6 +10,7 @@ from celery_app.tasks import send_notification
 from core.config import settings
 from core.errors import *
 from core.logging_config import logger
+from core.metrics import observe_notification_created, observe_notification_retried
 
 
 
@@ -56,6 +57,7 @@ class NotificationService:
             await session.commit()
 
             logger.debug("NOTIF_SERVICE: Notification (id={}) sent to Celery", notification.id)
+            observe_notification_created(payload.channel.value)
             send_notification.delay(notification_id=notification.id)
 
             await session.refresh(notification)
@@ -99,10 +101,12 @@ class NotificationService:
             notification.status = NotificationStatus.PENDING
             notification.sent_at = None
             notification.failure_reason = None
+            notification.provider_code = None
             await session.flush()
             await session.commit()
             await session.refresh(notification)
             logger.info("NOTIF_SERVICE: Sending notification to CELERY")
+            observe_notification_retried(notification.channel.value)
             send_notification.delay(notification_id=notification.id)
 
         except Exception:

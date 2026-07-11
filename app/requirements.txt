@@ -55,6 +55,8 @@ markupsafe==3.0.3
     # via jinja2
 packaging==26.2
     # via kombu
+prometheus-client==0.25.0
+    # via -r requirements.in
 prompt-toolkit==3.0.52
     # via click-repl
 psycopg[binary]==3.3.4

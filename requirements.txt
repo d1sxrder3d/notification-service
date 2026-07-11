@@ -94,6 +94,8 @@ pamqp==3.3.0
     # via aiormq
 pluggy==1.6.0
     # via pytest
+prometheus-client==0.25.0
+    # via -r requirements.in
 prompt-toolkit==3.0.52
     # via click-repl
 propcache==0.5.2

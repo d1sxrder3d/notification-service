@@ -1,11 +1,13 @@
 from email.message import EmailMessage
 from email.utils import formataddr
+from time import perf_counter
 from typing import Any
 
 import aiosmtplib
 
 from core.config import settings
 from core.logging_config import logger
+from core.metrics import observe_provider_send
 from models.notification import NotificationChannel
 from providers.base import NotificationProvider, ProviderSendResult
 from providers.templates_manager import TemplateManager, template_manager
@@ -14,6 +16,7 @@ from providers.templates_manager import TemplateManager, template_manager
 class SMTPProvider(NotificationProvider):
     def __init__(self, renderer: TemplateManager = template_manager):
         self.channel = NotificationChannel(settings.smtp.channel)
+        self.code = settings.smtp.provider_code
         self.host: str = settings.smtp.host
         self.port: int = settings.smtp.port
         self.username: str = settings.smtp.username
@@ -30,6 +33,7 @@ class SMTPProvider(NotificationProvider):
         template_code: str,
         payload: dict[str, Any],
     ) -> ProviderSendResult:
+        started_at = perf_counter()
         rendered = self.renderer.render(
             channel=self.channel,
             template_code=template_code,
@@ -49,20 +53,35 @@ class SMTPProvider(NotificationProvider):
         if rendered.html_body is not None:
             message.add_alternative(rendered.html_body, subtype="html")
 
-        smtp_response = await aiosmtplib.send(
-            message,
-            hostname=self.host,
-            port=self.port,
-            username=self.username,
-            password=self.password,
-            use_tls=self.use_tls,
-            start_tls=self.start_tls,
-        )
+        try:
+            smtp_response = await aiosmtplib.send(
+                message,
+                hostname=self.host,
+                port=self.port,
+                username=self.username,
+                password=self.password,
+                use_tls=self.use_tls,
+                start_tls=self.start_tls,
+            )
+        except Exception:
+            observe_provider_send(
+                channel=self.channel.value,
+                provider_code=self.code,
+                status="failed",
+                duration_seconds=perf_counter() - started_at,
+            )
+            raise
 
         logger.info(
             "SMTP notification sent to {} using template {}",
             recipient,
             template_code,
+        )
+        observe_provider_send(
+            channel=self.channel.value,
+            provider_code=self.code,
+            status="sent",
+            duration_seconds=perf_counter() - started_at,
         )
 
         return ProviderSendResult(

@@ -19,6 +19,7 @@ class SMTPSettings(BaseSettings):
     )
 
     channel: str = "email"
+    provider_code: str = "smtp_primary"
 
     host: str = "smtp.gmail.com"
     port: int = 465
@@ -159,6 +160,21 @@ class RabbitMQSettings(BaseSettings):
         return f"{self.protocol}://{self.user}:{self.password}@{self.host}:{self.port}{normalized_vhost}"
 
 
+class MetricsSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+        secrets_dir="/run/secrets",
+        env_prefix="METRICS_",
+    )
+
+    api_path: str = "/metrics"
+    celery_port: int = 9101
+    broker_port: int = 9102
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -183,6 +199,7 @@ class Settings(BaseSettings):
     rabbitmq: RabbitMQSettings = RabbitMQSettings()
     celery: CelerySettings = CelerySettings()
     smtp: SMTPSettings = SMTPSettings()
+    metrics: MetricsSettings = MetricsSettings()
 
 
 settings = Settings()

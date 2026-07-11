@@ -1,0 +1,10 @@
+{{ alert_title }}
+
+Hello, {{ name }}.
+
+{{ alert_message }}
+{% if action_url %}
+
+Open details:
+{{ action_url }}
+{% endif %}

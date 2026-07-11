@@ -115,6 +115,9 @@ app/templates/email/<new_template_code>/
 Сейчас в проекте есть:
 
 - `welcome`
+- `password_reset`
+- `email_verification`
+- `generic_alert`
 
 ## Связанные документы
 

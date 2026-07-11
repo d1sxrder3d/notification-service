@@ -10,6 +10,7 @@ from aio_pika.abc import (
 
 from brokers.consumers.base import MessageConsumer, MessageHandler
 from core.logging_config import logger
+from core.metrics import observe_rabbitmq_message
 
 
 class RabbitMQConsumer(MessageConsumer):
@@ -78,12 +79,18 @@ class RabbitMQConsumer(MessageConsumer):
         try:
             payload = self._decode_message(message)
         except ValueError:
+            observe_rabbitmq_message("rejected")
             await message.reject(requeue=False)
             return
 
         logger.info("Received RabbitMQ message {}", message.delivery_tag)
         async with message.process(requeue=self.requeue_on_error):
-            await handler(payload)
+            try:
+                await handler(payload)
+            except Exception:
+                observe_rabbitmq_message("failed")
+                raise
+        observe_rabbitmq_message("acknowledged")
         logger.info("Acknowledged RabbitMQ message {}", message.delivery_tag)
 
     @staticmethod
