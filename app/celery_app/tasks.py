@@ -4,6 +4,7 @@ from time import perf_counter
 
 from aiosmtplib.errors import SMTPAuthenticationError, SMTPConnectError, SMTPException
 from celery.signals import worker_process_init, worker_init
+from sqlalchemy import select
 
 from celery_app.app import app
 from core.config import settings
@@ -38,6 +39,29 @@ def _build_failure_reason(notification: Notification, exc: Exception) -> str:
 def _start_worker_metrics_server(**_: object) -> None:
     start_metrics_server(settings.metrics.celery_port)
 
+
+
+@worker_init.connect
+def _requeue_pending_notifications(**_: object) -> None:
+    with celery_db_manager.session() as session:
+        try:
+            pending_notification_ids = session.execute(
+                select(Notification.id).where(Notification.status == NotificationStatus.PENDING)
+            ).scalars().all()
+
+            if not pending_notification_ids:
+                logger.info("No pending notifications found on celery startup")
+                return
+
+            logger.warning(
+                "Found {} pending notifications on celery startup, requeueing",
+                len(pending_notification_ids),
+            )
+
+            for notification_id in pending_notification_ids:
+                send_notification.delay(notification_id)
+        except Exception:
+            logger.exception("Failed to requeue pending notifications on celery startup")
 
 
 @app.task
