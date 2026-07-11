@@ -51,7 +51,7 @@ def _requeue_pending_notifications(**_: object) -> None:
     with celery_db_manager.session() as session:
         try:
             pending_notification_ids = session.execute(
-                select(Notification.id).where(Notification.status.in_([NotificationStatus.PENDING, NotificationStatus.PROCESSING]))
+                select(Notification.id).where(Notification.status.in_([NotificationStatus.PENDING]))
             ).scalars().all()
 
             if not pending_notification_ids:
@@ -76,7 +76,11 @@ def send_notification(self, notification_id: int):
         provider_code = "unassigned"
         channel = "unknown"
         try:
-            notification = session.get(Notification, notification_id)
+            notification = session.execute(
+                select(Notification)
+                .where(Notification.id == notification_id)
+                .with_for_update()
+            ).scalar_one_or_none()
 
             if notification is None:
                 logger.error("Notification with id={} was not found", notification_id)
@@ -84,6 +88,10 @@ def send_notification(self, notification_id: int):
 
             if notification.status == NotificationStatus.SENT:
                 logger.info("Notification with id={} was already sent, skipping..", notification_id)
+                return
+
+            if notification.status == NotificationStatus.PROCESSING:
+                logger.info("Notification with id={} is already processing, skipping..", notification_id)
                 return
 
             if notification.attempts >= notification.max_attempts:
