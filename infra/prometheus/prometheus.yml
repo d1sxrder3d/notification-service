@@ -14,3 +14,34 @@ scrape_configs:
   - job_name: notification-service-rabbitmq-consumer
     static_configs:
       - targets: ["rabbitmq-consumer:9102"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: grafana
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["grafana:3000"]
+
+  - job_name: notification-service-infra
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets: ["postgres:5432"]
+        labels:
+          service: postgres
+      - targets: ["redis:6379"]
+        labels:
+          service: redis
+      - targets: ["rabbitmq:5672"]
+        labels:
+          service: rabbitmq
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115

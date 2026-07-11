@@ -4,10 +4,16 @@ from time import perf_counter
 from typing import Any
 
 import aiosmtplib
+from aiosmtplib.errors import SMTPAuthenticationError, SMTPConnectTimeoutError, SMTPReadTimeoutError, SMTPTimeoutError
 
 from core.config import settings
 from core.logging_config import logger
-from core.metrics import observe_provider_send
+from core.metrics import (
+    observe_provider_auth_error,
+    observe_provider_error,
+    observe_provider_send,
+    observe_provider_timeout,
+)
 from models.notification import NotificationChannel
 from providers.base import NotificationProvider, ProviderSendResult
 from providers.templates_manager import TemplateManager, template_manager
@@ -63,7 +69,46 @@ class SMTPProvider(NotificationProvider):
                 use_tls=self.use_tls,
                 start_tls=self.start_tls,
             )
+        except SMTPAuthenticationError:
+            observe_provider_error(
+                channel=self.channel.value,
+                provider_code=self.code,
+                reason="auth",
+            )
+            observe_provider_auth_error(
+                channel=self.channel.value,
+                provider_code=self.code,
+            )
+            observe_provider_send(
+                channel=self.channel.value,
+                provider_code=self.code,
+                status="failed",
+                duration_seconds=perf_counter() - started_at,
+            )
+            raise
+        except (SMTPConnectTimeoutError, SMTPReadTimeoutError, SMTPTimeoutError, TimeoutError):
+            observe_provider_error(
+                channel=self.channel.value,
+                provider_code=self.code,
+                reason="timeout",
+            )
+            observe_provider_timeout(
+                channel=self.channel.value,
+                provider_code=self.code,
+            )
+            observe_provider_send(
+                channel=self.channel.value,
+                provider_code=self.code,
+                status="failed",
+                duration_seconds=perf_counter() - started_at,
+            )
+            raise
         except Exception:
+            observe_provider_error(
+                channel=self.channel.value,
+                provider_code=self.code,
+                reason="other",
+            )
             observe_provider_send(
                 channel=self.channel.value,
                 provider_code=self.code,

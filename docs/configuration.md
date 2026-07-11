@@ -15,6 +15,8 @@
 - `CELERY_*`
 - `RMQ_*`
 - `SMTP_*`
+- `METRICS_*`
+- `GRAFANA_*`
 
 ## APP
 
@@ -194,6 +196,27 @@
 - `SMTP_PORT=465` и `SMTP_USE_TLS=true`
 - `SMTP_PORT=587` и `SMTP_START_TLS=true`
 
+## Metrics / Monitoring
+
+### `METRICS_API_PATH`
+
+Путь до Prometheus metrics endpoint у API. По умолчанию используется `/metrics`.
+
+### `METRICS_CELERY_PORT`
+
+Порт metrics HTTP server для `celery-worker`.
+
+### `METRICS_BROKER_PORT`
+
+Порт metrics HTTP server для `rabbitmq-consumer`.
+
+## Grafana
+
+### `GRAFANA_ADMIN_USER`
+### `GRAFANA_ADMIN_PASSWORD`
+
+Учетные данные администратора Grafana для локального запуска через `docker compose`.
+
 ## Рекомендуемые dev-настройки
 
 Для локального запуска через Docker Compose:
@@ -203,6 +226,9 @@
 - `CELERY_BROKER_HOST=redis`
 - `CELERY_RESULT_HOST=redis`
 - `RMQ_HOST=rabbitmq`
+- `METRICS_API_PATH=/metrics`
+- `METRICS_CELERY_PORT=9101`
+- `METRICS_BROKER_PORT=9102`
 
 ## Связанные документы
 
