@@ -20,6 +20,7 @@
 - `NotificationService`
 - `Celery` task отправки
 - API endpoints
+- metrics endpoint API
 
 Отдельно есть узкий smoke-test на `SQLite`.
 
@@ -38,6 +39,7 @@ test/
 - `test_send_notification_task.py`
 - `test_notification_api.py`
 - `test_notification_service_sqlite.py`
+- `test_metrics_api.py`
 - `conftest.py`
 
 ## Что является unit-тестом

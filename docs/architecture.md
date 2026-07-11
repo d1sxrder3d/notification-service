@@ -15,6 +15,7 @@
 5. `TemplateManager` рендерит шаблон по `template_code` и `payload`.
 6. Провайдер доставки отправляет уведомление и возвращает результат.
 7. Сервис обновляет `status`, `attempts`, `provider_code`, `failure_reason`, `sent_at`.
+8. `Prometheus` собирает метрики с API, `Celery`, `RabbitMQ` consumer и probe-слоя, а `Grafana` визуализирует их в dashboards.
 
 ## Основные компоненты
 
@@ -59,6 +60,24 @@
 - прием сообщений из очереди
 - преобразование message payload в `CreateNotificationRequest`
 - передачу управления в `NotificationService`
+
+### Observability
+
+Инфраструктура мониторинга находится в `infra/`.
+
+Сейчас в проекте есть:
+
+- `Prometheus` для сбора метрик
+- `Grafana` для dashboards
+- `blackbox-exporter` для health-check probe метрик по `postgres`, `redis`, `rabbitmq`
+
+Мониторинг покрывает:
+
+- API requests и latency
+- создание, доставку, ошибки и retry уведомлений
+- SMTP provider metrics
+- `Celery` task lifecycle
+- health ключевых сервисов
 
 ### Providers
 

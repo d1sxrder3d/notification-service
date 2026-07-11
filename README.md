@@ -12,6 +12,8 @@
 - файловые шаблоны писем с рендерингом через `Jinja2`
 - `idempotency` при создании уведомлений
 - хранение статуса отправки, числа попыток и `failure_reason`
+- мониторинг через `Prometheus`
+- готовые `Grafana` dashboards по сервису, воркеру и провайдеру
 - unit-first тесты и узкий SQLite smoke-слой
 
 ## Архитектура
@@ -29,6 +31,22 @@
 7. Статус уведомления в БД обновляется на `SENT` или `FAILED`.
 
 Подробное описание архитектуры можно позже вынести в [`docs/architecture.md`](docs/architecture.md).
+
+## Мониторинг
+
+В проекте реализован monitoring stack на базе `Prometheus` и `Grafana`.
+
+Что уже есть:
+
+- endpoint `GET /metrics` у API
+- метрики по API, доставке уведомлений, SMTP provider и `Celery`
+- health-monitoring сервисов через `Prometheus` и `blackbox-exporter`
+- готовые dashboards:
+  - `Notification Service Overview`
+  - `Notification Service Provider`
+  - `Notification Service Celery`
+
+![Главный Grafana dashboard](docs/images/grafana_1.png)
 
 ## Структура проекта
 
@@ -56,6 +74,8 @@
 - `CELERY_*` - брокер и backend для `Celery`
 - `RMQ_*` - `RabbitMQ`
 - `SMTP_*` - SMTP-провайдер
+- `METRICS_*` - endpoints и порты для Prometheus metrics
+- `GRAFANA_*` - учетные данные Grafana
 
 Несколько важных замечаний:
 
@@ -97,8 +117,16 @@ docker compose -f docker-compose.yml up --build
 - `celery-worker`
 - `rabbitmq-consumer`
 - `migrate`
+- `prometheus`
+- `grafana`
+- `blackbox-exporter`
 
 API будет доступно на `http://localhost:8000`.
+
+Интерфейсы мониторинга:
+
+- `Prometheus` - `http://localhost:9090`
+- `Grafana` - `http://localhost:3000`
 
 ### Применение миграций
 
@@ -231,6 +259,7 @@ $env:PYTHONPATH='app'; python -m pytest test
 - `scheduled_at` пока не реализован как полноценный планировщик
 - управление шаблонами выполняется только через файловую структуру проекта
 - secrets management пока остается на уровне `.env`
+- metrics для инфраструктуры строятся через probe-слой, а не через полноценные native exporters для каждого сервиса
 
 ## Дополнительная документация
 
