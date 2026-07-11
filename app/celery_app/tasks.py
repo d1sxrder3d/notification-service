@@ -11,10 +11,27 @@ from celery_app.app import app
 from core.config import settings
 from core.db import celery_db_manager
 from core.logging_config import logger
-from core.metrics import observe_notification_send, start_metrics_server
+from core.metrics import (
+    observe_celery_task_failed,
+    observe_celery_task_retried,
+    observe_celery_task_started,
+    observe_celery_task_succeeded,
+    observe_notification_delivery_latency,
+    observe_notification_failed,
+    observe_notification_retried,
+    observe_notification_send,
+    observe_notification_sent,
+    start_metrics_server,
+)
 from models.notification import Notification, NotificationStatus
 from providers.registry import ProviderNotConfiguredError, provider_registry
 from providers.templates_manager import TemplateRenderingError
+
+
+def _normalize_utc_datetime(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 def _build_failure_reason(notification: Notification, exc: Exception) -> str:
@@ -71,6 +88,8 @@ def _requeue_pending_notifications(**_: object) -> None:
 
 @app.task(bind=True)
 def send_notification(self, notification_id: int):
+    task_name = "send_notification"
+    observe_celery_task_started(task_name)
     with celery_db_manager.session() as session:
         started_at = perf_counter()
         provider_code = "unassigned"
@@ -84,22 +103,33 @@ def send_notification(self, notification_id: int):
 
             if notification is None:
                 logger.error("Notification with id={} was not found", notification_id)
+                observe_celery_task_succeeded(task_name, perf_counter() - started_at)
                 return
 
             if notification.status == NotificationStatus.SENT:
                 logger.info("Notification with id={} was already sent, skipping..", notification_id)
+                observe_celery_task_succeeded(task_name, perf_counter() - started_at)
                 return
 
             if notification.status == NotificationStatus.PROCESSING:
                 logger.info("Notification with id={} is already processing, skipping..", notification_id)
+                observe_celery_task_succeeded(task_name, perf_counter() - started_at)
                 return
 
             if notification.attempts >= notification.max_attempts:
                 logger.warning("Notification with id={} has reached max_attempts, status=FAILED", notification_id)
                 notification.status = NotificationStatus.FAILED
                 notification.failure_reason = "retry_budget_exhausted"
+                provider_code = notification.provider_code or provider_code
+                channel = notification.channel.value
+                observe_notification_failed(
+                    channel=channel,
+                    provider_code=provider_code,
+                    reason="retry_budget_exhausted",
+                )
 
                 session.commit()
+                observe_celery_task_failed(task_name, perf_counter() - started_at)
                 return
 
             notification.status = NotificationStatus.PROCESSING
@@ -142,8 +172,18 @@ def send_notification(self, notification_id: int):
                 status="sent",
                 duration_seconds=perf_counter() - started_at,
             )
+            observe_notification_sent(channel=channel, provider_code=provider_code)
+            if notification.created_at is not None:
+                created_at = _normalize_utc_datetime(notification.created_at)
+                sent_at = _normalize_utc_datetime(notification.sent_at)
+                observe_notification_delivery_latency(
+                    channel=channel,
+                    provider_code=provider_code,
+                    latency_seconds=(sent_at - created_at).total_seconds(),
+                )
 
             session.commit()
+            observe_celery_task_succeeded(task_name, perf_counter() - started_at)
         except Retry:
             raise
         except Exception as exc:
@@ -161,6 +201,8 @@ def send_notification(self, notification_id: int):
                     notification.status = NotificationStatus.PENDING
                     notification.failure_reason = failure_reason
                     session.commit()
+                    observe_notification_retried(channel)
+                    observe_celery_task_retried(task_name, perf_counter() - started_at)
 
                     logger.warning(
                         "Notification {} failed on attempt {}/{}, retrying",
@@ -173,6 +215,11 @@ def send_notification(self, notification_id: int):
 
                 notification.status = NotificationStatus.FAILED
                 notification.failure_reason = failure_reason
+                observe_notification_failed(
+                    channel=channel,
+                    provider_code=provider_code,
+                    reason=failure_reason,
+                )
                 observe_notification_send(
                     channel=channel,
                     provider_code=provider_code,
@@ -180,6 +227,7 @@ def send_notification(self, notification_id: int):
                     duration_seconds=perf_counter() - started_at,
                 )
                 session.commit()
+                observe_celery_task_failed(task_name, perf_counter() - started_at)
             logger.exception(
                 "Failed to send notification {} with reason {}",
                 notification_id,
