@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from time import perf_counter
 
 from aiosmtplib.errors import SMTPAuthenticationError, SMTPConnectError, SMTPException
+from celery.exceptions import Retry
 from celery.signals import worker_process_init, worker_init
 from sqlalchemy import select
 
@@ -34,6 +35,9 @@ def _build_failure_reason(notification: Notification, exc: Exception) -> str:
 
     return f"unexpected_error:{exc.__class__.__name__}"
 
+UNRETRIEVABLE_REASONS = ("provider_not_configured",
+                         "smtp_authentication_failed",
+                         "template_render_failed")
 
 @worker_process_init.connect
 def _start_worker_metrics_server(**_: object) -> None:
@@ -65,8 +69,8 @@ def _requeue_pending_notifications(**_: object) -> None:
             logger.exception("Failed to requeue pending notifications on celery startup")
 
 
-@app.task
-def send_notification(notification_id: int):
+@app.task(bind=True)
+def send_notification(self, notification_id: int):
     with celery_db_manager.session() as session:
         started_at = perf_counter()
         provider_code = "unassigned"
@@ -132,10 +136,35 @@ def send_notification(notification_id: int):
             )
 
             session.commit()
+        except Retry:
+            raise
         except Exception as exc:
             if "notification" in locals() and notification is not None:
+                failure_reason = _build_failure_reason(notification, exc)
+
+                is_unretrievable = False
+
+                for reason in UNRETRIEVABLE_REASONS:
+                    if reason in failure_reason:
+                        is_unretrievable = True
+                        break
+
+                if notification.attempts < notification.max_attempts and not is_unretrievable:
+                    notification.status = NotificationStatus.PENDING
+                    notification.failure_reason = failure_reason
+                    session.commit()
+
+                    logger.warning(
+                        "Notification {} failed on attempt {}/{}, retrying",
+                        notification.id,
+                        notification.attempts,
+                        notification.max_attempts,
+                    )
+
+                    raise self.retry(exc=exc)
+
                 notification.status = NotificationStatus.FAILED
-                notification.failure_reason = _build_failure_reason(notification, exc)
+                notification.failure_reason = failure_reason
                 observe_notification_send(
                     channel=channel,
                     provider_code=provider_code,
